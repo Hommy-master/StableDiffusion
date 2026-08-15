@@ -3,7 +3,25 @@ import pytorch_lightning as pl
 import torch.nn.functional as F
 from contextlib import contextmanager
 
-from taming.modules.vqvae.quantize import VectorQuantizer2 as VectorQuantizer
+# taming-transformers is only needed for the VQModel first stage (vq-f4/f8),
+# which Stable Diffusion v1 inference never uses (it uses AutoencoderKL).
+# Make the import optional so the image can run without taming installed.
+try:
+    from taming.modules.vqvae.quantize import VectorQuantizer2 as VectorQuantizer
+except (ImportError, ModuleNotFoundError):
+    class VectorQuantizer(torch.nn.Module):  # type: ignore[no-redef]
+        """Stub used when taming is absent. VQModel instantiation will fail
+        with a clear error; AutoencoderKL (v1 inference) never touches it."""
+
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                "taming-transformers is not installed. VQModel first stage "
+                "(vq-f4/f8) is unavailable. Install taming-transformers or "
+                "use an AutoencoderKL-based config."
+            )
+
+        def forward(self, *args, **kwargs):
+            raise ImportError("taming-transformers not installed")
 
 from ldm.modules.diffusionmodules.model import Encoder, Decoder
 from ldm.modules.distributions.distributions import DiagonalGaussianDistribution

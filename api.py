@@ -48,6 +48,17 @@ from ldm.models.diffusion.dpm_solver import DPMSolverSampler
 
 app = Flask(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Serve generated images via HTTP
+# ---------------------------------------------------------------------------
+@app.route("/outputs/<path:filename>")
+def serve_output(filename):
+    """Serve files from the output directory so the returned URLs are directly
+    downloadable by the client."""
+    from flask import send_from_directory
+    return send_from_directory(os.path.abspath(OUTPUT_DIR), filename)
+
 # ---------------------------------------------------------------------------
 # Global model state — loaded once at startup
 # ---------------------------------------------------------------------------
@@ -274,6 +285,7 @@ def init_app():
 
     # Load model
     config = OmegaConf.load(config_path)
+
     MODEL = load_model_from_config(config, ckpt_path, DEVICE)
 
     # Load safety checker

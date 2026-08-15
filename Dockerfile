@@ -58,7 +58,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install git-based dependencies
-RUN pip install --no-cache-dir git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers \
+# NOTE: taming-transformers' setup.py builds an EMPTY distribution when installed
+# the normal way (only dist-info metadata, no `taming` package). Upstream CompVis
+# installs it editable (`pip install -e src/taming-transformers`), so we do the
+# same: clone to /opt (persistent) and install editable. See environment.yaml.
+RUN git clone https://github.com/CompVis/taming-transformers.git /opt/taming-transformers \
+    && pip install --no-cache-dir -e /opt/taming-transformers \
     && pip install --no-cache-dir git+https://github.com/openai/CLIP.git@main#egg=clip
 
 # ---------------------------------------------------------------------------

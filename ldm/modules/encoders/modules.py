@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import os
 from functools import partial
 import clip
 from einops import rearrange, repeat
@@ -138,8 +139,25 @@ class FrozenCLIPEmbedder(AbstractEncoder):
     """Uses the CLIP transformer encoder for text (from Hugging Face)"""
     def __init__(self, version="openai/clip-vit-large-patch14", device="cuda", max_length=77):
         super().__init__()
+        # Allow a local CLIP directory (pre-downloaded tokenizer/config) to be
+        # used via SD_CLIP_PATH, avoiding runtime downloads from huggingface.co
+        # (unreachable) / hf-mirror (no ETag header for transformers 4.19).
+        version = os.environ.get("SD_CLIP_PATH", version)
         self.tokenizer = CLIPTokenizer.from_pretrained(version)
-        self.transformer = CLIPTextModel.from_pretrained(version)
+        try:
+            self.transformer = CLIPTextModel.from_pretrained(version)
+        except Exception as e:
+            # Weights not available locally / offline (e.g. huggingface.co
+            # unreachable, hf-mirror lacks ETag, or no pytorch_model.bin).
+            # Instantiate from config only with random weights - these are
+            # immediately overwritten by the SD checkpoint's
+            # cond_stage_model.transformer.* weights in load_model_from_config.
+            from transformers import CLIPTextConfig
+            print(f"FrozenCLIPEmbedder: from_pretrained failed ({e}); "
+                  "instantiating CLIPTextModel from config (weights will be "
+                  "loaded from the SD checkpoint).")
+            cfg = CLIPTextConfig.from_pretrained(version)
+            self.transformer = CLIPTextModel(cfg)
         self.device = device
         self.max_length = max_length
         self.freeze()
