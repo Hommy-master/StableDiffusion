@@ -68,7 +68,7 @@ COPY . .
 RUN pip install --no-cache-dir .
 
 # Create model directory (checkpoint will be downloaded at runtime if absent)
-RUN mkdir -p models/ldm/stable-diffusion-v1
+RUN mkdir -p models/ldm/stable-diffusion-v1 outputs
 
 # ---------------------------------------------------------------------------
 # Runtime configuration
@@ -77,6 +77,9 @@ ENV SD_HOST=0.0.0.0
 ENV SD_PORT=7860
 ENV SD_DEVICE=cuda
 ENV SD_SAMPLER=ddim
+# Base URL for converting container paths (/app/...) into download URLs
+# e.g. /app/outputs/test.png -> http://127.0.0.1/outputs/test.png
+ENV DOWNLOAD_URL=http://127.0.0.1/
 
 EXPOSE 7860
 

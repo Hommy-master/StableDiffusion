@@ -17,6 +17,11 @@ Environment variables:
     SD_SAMPLER     - default sampler: ddim / plms / dpm_solver (default: ddim)
     SD_SKIP_SAFETY - set to "1" to disable NSFW safety checker (default: 0)
     HF_TOKEN       - HuggingFace token for downloading model checkpoint (optional)
+    SD_OUTPUT_DIR  - directory to save generated images (default: outputs)
+    DOWNLOAD_URL   - base URL used to convert container file paths into download URLs.
+                     Rule: replace the container path prefix "/app/" with DOWNLOAD_URL.
+                     e.g. DOWNLOAD_URL=http://127.0.0.1/
+                          /app/outputs/test.png -> http://127.0.0.1/outputs/test.png
 """
 
 import base64
@@ -50,6 +55,61 @@ DEVICE = None
 SAMPLERS = {}          # name -> sampler instance
 SAFETY_CHECKER = None
 SAFETY_FEATURE_EXTRACTOR = None
+
+
+# ---------------------------------------------------------------------------
+# Output directory & URL conversion
+# ---------------------------------------------------------------------------
+OUTPUT_DIR = os.environ.get("SD_OUTPUT_DIR", "outputs")
+# Container root prefix used for path -> URL conversion
+CONTAINER_ROOT = "/app/"
+
+
+def get_output_dir():
+    """Return the absolute output directory, creating it if necessary."""
+    out_dir = os.path.abspath(OUTPUT_DIR)
+    os.makedirs(out_dir, exist_ok=True)
+    return out_dir
+
+
+def local_path_to_url(filepath):
+    """
+    Convert a container-local file path into a download URL.
+
+    Replacement rule: container path prefix "/app/" -> DOWNLOAD_URL
+        /app/outputs/test.png + DOWNLOAD_URL=http://127.0.0.1/
+        -> http://127.0.0.1/outputs/test.png
+    """
+    download_url = os.environ.get("DOWNLOAD_URL", "http://127.0.0.1/")
+    if not download_url.endswith("/"):
+        download_url += "/"
+
+    # Keep posix-style absolute paths (container paths) as-is;
+    # only expand relative paths via abspath (host/local runs).
+    posix_path = filepath.replace(os.sep, "/")
+    if not posix_path.startswith("/"):
+        posix_path = os.path.abspath(filepath).replace(os.sep, "/")
+
+    if posix_path.startswith(CONTAINER_ROOT):
+        return download_url + posix_path[len(CONTAINER_ROOT):]
+
+    # Path is outside /app/ — return the raw path as a fallback
+    return posix_path
+
+
+def save_images(pil_images, seed):
+    """Save PIL images to the output directory. Returns (file_paths, urls)."""
+    out_dir = get_output_dir()
+    timestamp = time.strftime("%Y%m%d%H%M%S")
+    file_paths, urls = [], []
+    for i, img in enumerate(pil_images):
+        filename = f"{timestamp}-{seed}-{i}.png"
+        filepath = os.path.join(out_dir, filename)
+        img.save(filepath)
+        file_paths.append(filepath)
+        urls.append(local_path_to_url(filepath))
+        print(f"Saved image: {filepath} -> {urls[-1]}")
+    return file_paths, urls
 
 
 # ---------------------------------------------------------------------------
@@ -297,6 +357,12 @@ def index():
                 "n_samples": 1,
                 "seed": 42,
                 "sampler": "ddim",
+                "return_format": "url",
+            },
+            "return_formats": {
+                "url": "default — images saved to outputs/, returned as download URLs",
+                "base64": "images returned inline as data URIs",
+                "file": "single image returned directly as PNG binary",
             },
         },
     })
@@ -322,7 +388,7 @@ def txt2img():
     seed = int(data.get("seed", 42))
     sampler_name = data.get("sampler", os.environ.get("SD_SAMPLER", "ddim"))
     precision = data.get("precision", "autocast")
-    return_format = data.get("return_format", "base64")  # base64 | file
+    return_format = data.get("return_format", "url")  # url | base64 | file
 
     # Clamp values to safe ranges
     ddim_steps = max(1, min(ddim_steps, 200))
@@ -346,6 +412,9 @@ def txt2img():
         )
         elapsed = time.time() - start
 
+        # Always persist images to the output directory first
+        file_paths, urls = save_images(images, seed)
+
         if return_format == "file" and len(images) == 1:
             buf = io.BytesIO()
             images[0].save(buf, format="PNG")
@@ -353,16 +422,21 @@ def txt2img():
             from flask import send_file
             return send_file(buf, mimetype="image/png", download_name="generated.png")
 
-        # Default: return base64-encoded images
-        result_images = []
-        for img in images:
-            buf = io.BytesIO()
-            img.save(buf, format="PNG")
-            b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-            result_images.append(f"data:image/png;base64,{b64}")
+        # Default: return download URLs (container path /app/ -> DOWNLOAD_URL)
+        if return_format == "url":
+            result_images = urls
+        else:
+            # base64-encoded images
+            result_images = []
+            for img in images:
+                buf = io.BytesIO()
+                img.save(buf, format="PNG")
+                b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+                result_images.append(f"data:image/png;base64,{b64}")
 
         return jsonify({
             "images": result_images,
+            "file_paths": file_paths,
             "parameters": {
                 "prompt": prompt,
                 "ddim_steps": ddim_steps,
