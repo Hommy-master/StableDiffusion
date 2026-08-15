@@ -1,0 +1,48 @@
+services:
+  sd:
+    image: gogoshine/sd:latest
+    platform: linux/amd64
+    ports:
+      - "7860:7860"
+    volumes:
+      # 模型权重挂载（避免每次启动重新下载 4GB）
+      - ./models:/app/models
+      # 生成图片输出目录
+      - ./outputs:/app/outputs
+      # HuggingFace 缓存（safety checker 等模型缓存复用）
+      - ./hf-cache:/root/.cache/huggingface
+      # - /etc/localtime:/etc/localtime:ro
+      # - /etc/timezone:/etc/timezone:ro
+    environment:
+      # 绑定地址和端口
+      - SD_HOST=0.0.0.0
+      - SD_PORT=7860
+      # 推理设备：cuda / cpu（CPU 模式极慢）
+      - SD_DEVICE=cuda
+      # 默认采样器：ddim / plms / dpm_solver
+      - SD_SAMPLER=ddim
+      # 模型权重路径（挂载到 ./models 时自动生效）
+      - SD_MODEL_PATH=/app/models/ldm/stable-diffusion-v1/model.ckpt
+      # 设为 1 可跳过 NSFW 安全检查器加载（减少启动时间和显存）
+      - SD_SKIP_SAFETY=0
+      # HuggingFace Token（下载受限模型时需要，可选）
+      # - HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - sd-network
+    mem_limit: 16G
+    memswap_limit: 16G
+    cpus: '4'
+    oom_score_adj: -500
+    restart: unless-stopped
+    container_name: sd
+
+networks:
+  sd-network:
+    driver: bridge
