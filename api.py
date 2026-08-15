@@ -184,9 +184,23 @@ def check_safety(x_image, device):
 # ---------------------------------------------------------------------------
 # Download model checkpoint if missing
 # ---------------------------------------------------------------------------
+def _is_valid_ckpt(ckpt_path, min_bytes=3_000_000_000):
+    """Sanity check: sd-v1-4.ckpt is ~4.27GB. A truncated file (e.g. an
+    interrupted download) will fail torch.load with
+    'failed finding central directory' because the zip central directory
+    lives at the END of the file. Reject anything suspiciously small."""
+    if not os.path.exists(ckpt_path):
+        return False
+    size = os.path.getsize(ckpt_path)
+    if size < min_bytes:
+        print(f"WARNING: {ckpt_path} is only {size / 1e9:.2f} GB (< {min_bytes / 1e9:.1f} GB expected) - truncated or invalid, will re-download.")
+        return False
+    return True
+
+
 def ensure_model_checkpoint(ckpt_path):
     """Download sd-v1-4.ckpt from HuggingFace if the checkpoint is not present."""
-    if os.path.exists(ckpt_path) and os.path.getsize(ckpt_path) > 1_000_000:
+    if _is_valid_ckpt(ckpt_path):
         print(f"Model checkpoint found at {ckpt_path}")
         return True
 
@@ -207,9 +221,13 @@ def ensure_model_checkpoint(ckpt_path):
     if hf_token:
         headers["Authorization"] = f"Bearer {hf_token}"
 
+    # Download to a .part temp file first, then atomically rename on success.
+    # This prevents interrupted downloads from leaving a truncated ckpt that
+    # passes the size check but breaks torch.load (missing zip central directory).
+    part_path = ckpt_path + ".part"
     req = urllib.request.Request(url, headers=headers)
     try:
-        with urllib.request.urlopen(req) as resp, open(ckpt_path, "wb") as f:
+        with urllib.request.urlopen(req) as resp, open(part_path, "wb") as f:
             total = int(resp.headers.get("Content-Length", 0))
             downloaded = 0
             block = 1024 * 1024  # 1 MB
@@ -223,9 +241,14 @@ def ensure_model_checkpoint(ckpt_path):
                     pct = downloaded * 100 // total
                     print(f"\r  {downloaded // (1024 * 1024)} / {total // (1024 * 1024)} MB ({pct}%)", end="", flush=True)
             print("\nDownload complete.")
+        if not _is_valid_ckpt(part_path):
+            raise IOError(f"downloaded file is truncated ({os.path.getsize(part_path)} bytes)")
+        os.replace(part_path, ckpt_path)
         return True
     except Exception as e:
         print(f"\nERROR: failed to download model checkpoint: {e}")
+        if os.path.exists(part_path):
+            os.remove(part_path)
         print("Please manually download sd-v1-4.ckpt and place it at:")
         print(f"  {ckpt_path}")
         print("Or set SD_MODEL_PATH to point to an existing checkpoint.")
