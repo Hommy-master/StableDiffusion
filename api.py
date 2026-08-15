@@ -17,6 +17,7 @@ Environment variables:
     SD_SAMPLER     - default sampler: ddim / plms / dpm_solver (default: ddim)
     SD_SKIP_SAFETY - set to "1" to disable NSFW safety checker (default: 0)
     HF_TOKEN       - HuggingFace token for downloading model checkpoint (optional)
+    SD_MODEL_URL   - checkpoint download URL (default: hf-mirror.com mirror of sd-v1-4.ckpt)
     SD_OUTPUT_DIR  - directory to save generated images (default: outputs)
     DOWNLOAD_URL   - base URL used to convert container file paths into download URLs.
                      Rule: replace the container path prefix "/app/" with DOWNLOAD_URL.
@@ -190,9 +191,11 @@ def ensure_model_checkpoint(ckpt_path):
         return True
 
     os.makedirs(os.path.dirname(ckpt_path), exist_ok=True)
+    # Use hf-mirror.com by default (huggingface.co is unreachable in some regions).
+    # Override with SD_MODEL_URL if you have another mirror / local file server.
     url = os.environ.get(
         "SD_MODEL_URL",
-        "https://huggingface.co/CompVis/stable-diffusion-v-1-4-original/resolve/main/sd-v1-4.ckpt",
+        "https://hf-mirror.com/CompVis/stable-diffusion-v-1-4-original/resolve/main/sd-v1-4.ckpt",
     )
     print(f"Checkpoint not found at {ckpt_path}. Downloading from {url} ...")
 
