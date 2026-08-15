@@ -1,0 +1,6 @@
+name: Docker Image CI
+
+on:
+  push:
+    tags:
+      - 'v*'  # 仅在推送 v 开头的 tag 时触发打包
