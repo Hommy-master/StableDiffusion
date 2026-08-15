@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# GitHub
+.github
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+.pytest_cache
+.mypy_cache
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Output / generated files
+outputs/
+*.png
+*.jpg
+*.jpeg
+*.wav
+*.mp4
+
+# Model checkpoints (too large for image, downloaded at runtime)
+*.ckpt
+*.pt
+*.safetensors
+models/ldm/stable-diffusion-v1/*.ckpt
+
+# Docs
+*.md
+LICENSE
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml

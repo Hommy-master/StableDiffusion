@@ -4,3 +4,68 @@ on:
   push:
     tags:
       - 'v*'  # 仅在推送 v 开头的 tag 时触发打包
+
+# Required GitHub secrets (configure in repo Settings → Secrets and variables → Actions):
+#   DOCKERHUB_USERNAME  — Docker Hub account name
+#   DOCKERHUB_TOKEN     — Docker Hub access token (Account Settings → Security → New Access Token)
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ---------------------------------------------------------------------
+      # 1. Checkout source code
+      # ---------------------------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---------------------------------------------------------------------
+      # 2. Extract tag version (e.g. v1.0.0 → 1.0.0)
+      # ---------------------------------------------------------------------
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      # ---------------------------------------------------------------------
+      # 3. Set up Docker Buildx (for multi-platform & cache support)
+      # ---------------------------------------------------------------------
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ---------------------------------------------------------------------
+      # 4. Login to Docker Hub
+      # ---------------------------------------------------------------------
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # ---------------------------------------------------------------------
+      # 5. Build and push the image
+      # ---------------------------------------------------------------------
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            gogoshine/sd:latest
+            gogoshine/sd:${{ steps.version.outputs.VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ---------------------------------------------------------------------
+      # 6. Summary
+      # ---------------------------------------------------------------------
+      - name: Image push summary
+        run: |
+          echo "✅ Docker image pushed successfully"
+          echo "  gogoshine/sd:latest"
+          echo "  gogoshine/sd:${{ steps.version.outputs.VERSION }}"
+          echo ""
+          echo "Pull and run:"
+          echo "  docker pull gogoshine/sd:latest"
+          echo "  docker run --gpus all -p 7860:7860 gogoshine/sd:latest"

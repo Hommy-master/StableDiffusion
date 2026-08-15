@@ -1,0 +1,27 @@
+# Stable Diffusion — pip requirements for Docker
+# (Derived from environment.yaml, adapted for pip-based installation)
+
+# PyTorch is installed separately in the Dockerfile with the correct CUDA index
+# torch==1.11.0
+# torchvision==0.12.0
+
+numpy==1.19.5
+albumentations==0.4.3
+opencv-python-headless==4.1.2.30
+pudb==2019.2
+invisible-watermark>=0.1.5
+imageio==2.9.0
+imageio-ffmpeg==0.4.2
+pytorch-lightning==1.4.2
+omegaconf==2.1.1
+test-tube>=0.7.5
+einops==0.3.0
+torch-fidelity==0.3.0
+transformers==4.19.2
+torchmetrics==0.6.0
+kornia==0.6
+diffusers==0.3.0
+flask==2.1.3
+werkzeug==2.0.3
+Pillow>=8.0.0
+tqdm
