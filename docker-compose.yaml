@@ -25,13 +25,13 @@ services:
       - SD_MODEL_PATH=/app/models/ldm/stable-diffusion-v1/model.ckpt
       # 模型下载地址（默认走 hf-mirror.com 国内镜像，huggingface.co 无法直连时使用）
       - SD_MODEL_URL=https://hf-mirror.com/CompVis/stable-diffusion-v-1-4-original/resolve/main/sd-v1-4.ckpt
-      # 设为 1 可跳过 NSFW 安全检查器加载（减少启动时间和显存）
-      - SD_SKIP_SAFETY=0
+      # 设为 1 可跳过 NSFW 安全检查器加载（镜像默认跳过，避免启动时联网下载）
+      - SD_SKIP_SAFETY=1
       # 生成的图片保存目录（容器内路径）
       - SD_OUTPUT_DIR=outputs
       # 用于将容器内部的文件路径转成URL，本质是将/app/替换成DOWNLOAD_URL得到下载路径
-      # 例：/app/outputs/test.png -> http://127.0.0.1/outputs/test.png
-      - DOWNLOAD_URL=http://127.0.0.1/
+      # 例：/app/outputs/test.png -> http://127.0.0.1:7860/outputs/test.png
+      - DOWNLOAD_URL=http://127.0.0.1:7860/
       # HuggingFace Token（下载受限模型时需要，可选）
       # - HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
     deploy:

@@ -76,15 +76,40 @@ RUN pip install --no-cache-dir .
 RUN mkdir -p models/ldm/stable-diffusion-v1 outputs
 
 # ---------------------------------------------------------------------------
+# CLIP tokenizer/config — bake into the image so no runtime download is needed
+# ---------------------------------------------------------------------------
+# huggingface.co is unreachable from China; hf-mirror.com is used instead.
+# The older transformers (4.19) in this image needs these files on disk
+# (SD_CLIP_PATH) because hf-mirror lacks proper ETag/etag headers.
+RUN mkdir -p /app/clip-vit-large-patch14 \
+    && cd /app/clip-vit-large-patch14 \
+    && BASE="https://hf-mirror.com/openai/clip-vit-large-patch14/resolve/main" \
+    && wget -q "$BASE/vocab.json" \
+    && wget -q "$BASE/merges.txt" \
+    && wget -q "$BASE/tokenizer_config.json" \
+    && wget -q "$BASE/special_tokens_map.json" \
+    && wget -q "$BASE/config.json" \
+    && ls -la /app/clip-vit-large-patch14
+
+# ---------------------------------------------------------------------------
 # Runtime configuration
 # ---------------------------------------------------------------------------
 ENV SD_HOST=0.0.0.0
 ENV SD_PORT=7860
 ENV SD_DEVICE=cuda
 ENV SD_SAMPLER=ddim
+# CLIP tokenizer/config baked into the image at build time
+ENV SD_CLIP_PATH=/app/clip-vit-large-patch14
+# Skip NSFW safety checker by default: transformers 4.19.2 cannot download it
+# from hf-mirror.com (etag/resolve-cache URL bug) and huggingface.co is
+# unreachable from China. Set SD_SKIP_SAFETY=0 + SD_SAFETY_CHECKER_PATH=<dir>
+# to enable it with a local copy of CompVis/stable-diffusion-safety-checker.
+ENV SD_SKIP_SAFETY=1
+# Use the HuggingFace mirror for any remaining runtime downloads
+ENV HF_ENDPOINT=https://hf-mirror.com
 # Base URL for converting container paths (/app/...) into download URLs
-# e.g. /app/outputs/test.png -> http://127.0.0.1/outputs/test.png
-ENV DOWNLOAD_URL=http://127.0.0.1/
+# e.g. /app/outputs/test.png -> http://127.0.0.1:7860/outputs/test.png
+ENV DOWNLOAD_URL=http://127.0.0.1:7860/
 
 EXPOSE 7860
 

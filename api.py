@@ -157,7 +157,9 @@ def try_load_safety_checker(device):
         )
         from transformers import AutoFeatureExtractor
 
-        safety_model_id = "CompVis/stable-diffusion-safety-checker"
+        safety_model_id = os.environ.get(
+            "SD_SAFETY_CHECKER_PATH", "CompVis/stable-diffusion-safety-checker"
+        )
         print("Loading safety checker...")
         extractor = AutoFeatureExtractor.from_pretrained(safety_model_id)
         checker = StableDiffusionSafetyChecker.from_pretrained(safety_model_id)
