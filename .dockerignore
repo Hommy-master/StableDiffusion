@@ -26,6 +26,7 @@ env/
 *.swo
 
 # Output / generated files
+output/
 outputs/
 *.png
 *.jpg
@@ -43,11 +44,6 @@ models/ldm/stable-diffusion-v1/*.ckpt
 *.md
 LICENSE
 
-# Docker
-Dockerfile
+# Docker 构建产物与运行目录（模型、输出、缓存均在宿主机，不需要打进镜像）
 .dockerignore
-docker-compose.yml
-docker-compose.yaml
-
-# docker/ 运行目录（模型、输出、缓存均在宿主机，不需要打进镜像）
 docker/

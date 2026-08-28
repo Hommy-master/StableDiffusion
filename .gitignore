@@ -1,3 +1,6 @@
 /models/ldm/stable-diffusion-v1
 *.pyc
-/docker
+# docker/ 运行时数据（模型、输出、缓存）；保留 Dockerfile / compose
+/docker/*
+!/docker/Dockerfile
+!/docker/docker-compose.yaml

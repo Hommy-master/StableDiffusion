@@ -1,6 +1,9 @@
 services:
   sd:
     image: gogoshine/sd:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     platform: linux/amd64
     ports:
       - "7860:7860"
@@ -8,7 +11,7 @@ services:
       # 模型权重挂载（避免每次启动重新下载 4GB）
       - ./models:/app/models
       # 生成图片输出目录
-      - ./outputs:/app/outputs
+      - ./output:/app/output
       # HuggingFace 缓存（safety checker 等模型缓存复用）
       - ./hf-cache:/root/.cache/huggingface
       # - /etc/localtime:/etc/localtime:ro
@@ -28,9 +31,9 @@ services:
       # 设为 1 可跳过 NSFW 安全检查器加载（镜像默认跳过，避免启动时联网下载）
       - SD_SKIP_SAFETY=1
       # 生成的图片保存目录（容器内路径）
-      - SD_OUTPUT_DIR=outputs
+      - SD_OUTPUT_DIR=output
       # 用于将容器内部的文件路径转成URL，本质是将/app/替换成DOWNLOAD_URL得到下载路径
-      # 例：/app/outputs/test.png -> http://127.0.0.1:7860/outputs/test.png
+      # 例：/app/output/test.png -> http://127.0.0.1:7860/output/test.png
       - DOWNLOAD_URL=http://127.0.0.1:7860/
       # HuggingFace Token（下载受限模型时需要，可选）
       # - HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx

@@ -18,11 +18,11 @@ Environment variables:
     SD_SKIP_SAFETY - set to "1" to disable NSFW safety checker (default: 0)
     HF_TOKEN       - HuggingFace token for downloading model checkpoint (optional)
     SD_MODEL_URL   - checkpoint download URL (default: hf-mirror.com mirror of sd-v1-4.ckpt)
-    SD_OUTPUT_DIR  - directory to save generated images (default: outputs)
+    SD_OUTPUT_DIR  - directory to save generated images (default: output)
     DOWNLOAD_URL   - base URL used to convert container file paths into download URLs.
                      Rule: replace the container path prefix "/app/" with DOWNLOAD_URL.
                      e.g. DOWNLOAD_URL=http://127.0.0.1/
-                          /app/outputs/test.png -> http://127.0.0.1/outputs/test.png
+                          /app/output/test.png -> http://127.0.0.1/output/test.png
 """
 
 import base64
@@ -52,7 +52,7 @@ app = Flask(__name__)
 # ---------------------------------------------------------------------------
 # Serve generated images via HTTP
 # ---------------------------------------------------------------------------
-@app.route("/outputs/<path:filename>")
+@app.route("/output/<path:filename>")
 def serve_output(filename):
     """Serve files from the output directory so the returned URLs are directly
     downloadable by the client."""
@@ -72,7 +72,7 @@ SAFETY_FEATURE_EXTRACTOR = None
 # ---------------------------------------------------------------------------
 # Output directory & URL conversion
 # ---------------------------------------------------------------------------
-OUTPUT_DIR = os.environ.get("SD_OUTPUT_DIR", "outputs")
+OUTPUT_DIR = os.environ.get("SD_OUTPUT_DIR", "output")
 # Container root prefix used for path -> URL conversion
 CONTAINER_ROOT = "/app/"
 
@@ -89,8 +89,8 @@ def local_path_to_url(filepath):
     Convert a container-local file path into a download URL.
 
     Replacement rule: container path prefix "/app/" -> DOWNLOAD_URL
-        /app/outputs/test.png + DOWNLOAD_URL=http://127.0.0.1/
-        -> http://127.0.0.1/outputs/test.png
+        /app/output/test.png + DOWNLOAD_URL=http://127.0.0.1/
+        -> http://127.0.0.1/output/test.png
     """
     download_url = os.environ.get("DOWNLOAD_URL", "http://127.0.0.1/")
     if not download_url.endswith("/"):
@@ -400,7 +400,7 @@ def index():
                 "return_format": "url",
             },
             "return_formats": {
-                "url": "default — images saved to outputs/, returned as download URLs",
+                "url": "default — images saved to output/, returned as download URLs",
                 "base64": "images returned inline as data URIs",
                 "file": "single image returned directly as PNG binary",
             },

@@ -1,8 +1,11 @@
 # Dockerfile — Stable Diffusion API
 # Image: gogoshine/sd
 #
-# Build:
-#   docker build -t gogoshine/sd .
+# Build (from repo root):
+#   docker build -f docker/Dockerfile -t gogoshine/sd .
+#
+# Or via compose (from docker/):
+#   docker compose build
 #
 # Run (GPU):
 #   docker run --gpus all -p 7860:7860 gogoshine/sd
@@ -73,7 +76,7 @@ COPY . .
 RUN pip install --no-cache-dir .
 
 # Create model directory (checkpoint will be downloaded at runtime if absent)
-RUN mkdir -p models/ldm/stable-diffusion-v1 outputs
+RUN mkdir -p models/ldm/stable-diffusion-v1 output
 
 # ---------------------------------------------------------------------------
 # CLIP tokenizer/config — bake into the image so no runtime download is needed
@@ -108,7 +111,7 @@ ENV SD_SKIP_SAFETY=1
 # Use the HuggingFace mirror for any remaining runtime downloads
 ENV HF_ENDPOINT=https://hf-mirror.com
 # Base URL for converting container paths (/app/...) into download URLs
-# e.g. /app/outputs/test.png -> http://127.0.0.1:7860/outputs/test.png
+# e.g. /app/output/test.png -> http://127.0.0.1:7860/output/test.png
 ENV DOWNLOAD_URL=http://127.0.0.1:7860/
 
 EXPOSE 7860
