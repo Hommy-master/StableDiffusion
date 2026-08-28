@@ -1,2 +1,3 @@
 /models/ldm/stable-diffusion-v1
 *.pyc
+/docker
