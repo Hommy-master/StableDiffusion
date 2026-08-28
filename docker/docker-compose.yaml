@@ -37,13 +37,7 @@ services:
       - DOWNLOAD_URL=http://127.0.0.1:7860/
       # HuggingFace Token（下载受限模型时需要，可选）
       # - HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    gpus: all
     networks:
       - sd-network
     mem_limit: 16G
