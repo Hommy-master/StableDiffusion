@@ -34,7 +34,15 @@ docker compose up -d
 docker/models/ldm/stable-diffusion-v1/model.ckpt
 ```
 
-若该路径不存在，容器启动时会按 `SD_MODEL_URL` 自动下载。
+若该路径不存在，容器启动时会按 `SD_MODEL_URL` 自动下载 **Stable Diffusion 1.5**（`v1-5-pruned-emaonly.ckpt`）。
+
+若本地已是旧的 SD 1.4 权重，需先删除或替换该文件后再重启，才会重新下载 1.5：
+
+```bash
+# 示例：删除旧权重后重启，触发下载 SD 1.5
+rm docker/models/ldm/stable-diffusion-v1/model.ckpt
+cd docker && docker compose up -d
+```
 
 ### 常用环境变量
 
@@ -46,7 +54,7 @@ docker/models/ldm/stable-diffusion-v1/model.ckpt
 | `SD_DEVICE` | `cuda` | `cuda` 或 `cpu` |
 | `SD_SAMPLER` | `ddim` | 默认采样器：`ddim` / `plms` / `dpm_solver` |
 | `SD_MODEL_PATH` | `/app/models/ldm/stable-diffusion-v1/model.ckpt` | 权重路径 |
-| `SD_MODEL_URL` | hf-mirror 上的 sd-v1-4.ckpt | 权重缺失时的下载地址 |
+| `SD_MODEL_URL` | hf-mirror 上的 SD 1.5 `v1-5-pruned-emaonly.ckpt` | 权重缺失时的下载地址 |
 | `SD_SKIP_SAFETY` | `1` | `1` 跳过 NSFW 安全检查器 |
 | `SD_OUTPUT_DIR` | `output` | 容器内输出目录 |
 | `SD_MAX_TASKS` | `500` | 内存中保留的任务记录上限 |
